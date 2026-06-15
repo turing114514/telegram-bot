@@ -2,9 +2,11 @@ package bot
 
 import (
 	"context"
+	"sort"
 	"strconv"
 	"strings"
 
+	"telegram-bot/internal/api"
 	"telegram-bot/internal/i18n"
 	"telegram-bot/internal/state"
 
@@ -117,13 +119,29 @@ func (b *Bot) resolveUserLocale(c tele.Context, sess *state.Session) string {
 func ctxFromTele(_ tele.Context) context.Context { return context.Background() }
 
 func (b *Bot) sendMenu(c tele.Context, text string) error {
-	menuMu.RLock()
-	kb := menuMarkup
-	menuMu.RUnlock()
+	sess := b.state.Get(c.Sender().ID)
+	locale := b.resolveUserLocale(c, sess)
+	kb := b.buildUserReplyMarkup(locale)
 	if kb == nil {
-		return c.Send(text)
+		return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML})
 	}
-	return c.Send(text, kb)
+	return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
+}
+
+// buildUserReplyMarkup 按用户当前 locale 渲染底部持久菜单
+func (b *Bot) buildUserReplyMarkup(locale string) *tele.ReplyMarkup {
+	cfg := b.botConfig.Load()
+	if cfg == nil {
+		return nil
+	}
+	items := make([]api.BotConfigMenuItem, 0, len(cfg.Menu.Items))
+	for _, it := range cfg.Menu.Items {
+		if it.Enabled {
+			items = append(items, it)
+		}
+	}
+	sort.SliceStable(items, func(i, j int) bool { return items[i].Order < items[j].Order })
+	return buildReplyMarkupForLocale(cfg, items, locale)
 }
 
 func looksLikeAmount(s string) bool {

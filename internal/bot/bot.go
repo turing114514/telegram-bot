@@ -225,10 +225,15 @@ func (b *Bot) applyMenu(cfg *api.BotConfig) {
 }
 
 func buildReplyMarkup(cfg *api.BotConfig, items []api.BotConfigMenuItem) *tele.ReplyMarkup {
+	return buildReplyMarkupForLocale(cfg, items, cfg.DefaultLocale)
+}
+
+// buildReplyMarkupForLocale 按指定 locale 渲染 reply keyboard
+func buildReplyMarkupForLocale(cfg *api.BotConfig, items []api.BotConfigMenuItem, locale string) *tele.ReplyMarkup {
 	kb := &tele.ReplyMarkup{ResizeKeyboard: true}
 	var rows []tele.Row
 	for _, it := range items {
-		label := pickLocalized(it.Label, cfg.DefaultLocale, cfg.DefaultLocale)
+		label := pickLocalized(it.Label, locale, locale)
 		if strings.TrimSpace(label) == "" {
 			label = it.Key
 		}

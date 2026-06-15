@@ -92,7 +92,14 @@ func (b *Bot) handleLangCallback(c tele.Context, code string) error {
 	}
 	b.state.SetLocale(c.Sender().ID, code)
 	text := b.bundle.MustTr(code, "start.language_set", map[string]any{"Locale": b.bundle.T(code, "lang."+code)})
-	return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML})
+
+	// 同时重新触发 config 拉取以更新菜单项（保持后端配置的语言映射）
+	if cfg := b.botConfig.Load(); cfg != nil {
+		b.applyMenu(cfg)
+	}
+	// 按用户当前 locale 重建底部菜单
+	menuMarkup := b.buildUserReplyMarkup(code)
+	return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: menuMarkup})
 }
 
 func (b *Bot) handleBackMain(c tele.Context) error {
