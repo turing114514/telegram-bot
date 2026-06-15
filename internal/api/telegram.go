@@ -77,20 +77,22 @@ type BotConfigMenuAction struct {
 }
 
 // GetBotConfig GET /api/v1/channel/telegram/config
-// 返回 config + config_version 两层结构
+// 返回 data.config + data.config_version 两层结构
 func (c *Client) GetBotConfig(ctx context.Context) (*BotConfig, int, error) {
 	var resp struct {
-		StatusCode int       `json:"status_code"`
-		Msg        string    `json:"msg"`
-		Data       BotConfig `json:"data"`
-		ConfigVer  int       `json:"config_version"`
+		StatusCode int `json:"status_code"`
+		Msg        string `json:"msg"`
+		Data       struct {
+			Config     BotConfig `json:"config"`
+			ConfigVer  int       `json:"config_version"`
+		} `json:"data"`
 	}
 	if err := c.do(ctx, "GET", "/api/v1/channel/telegram/config", nil, nil, &resp); err != nil {
 		return nil, 0, err
 	}
-	cfg := resp.Data
+	cfg := resp.Data.Config
 	if cfg.ConfigVersion == 0 {
-		cfg.ConfigVersion = resp.ConfigVer
+		cfg.ConfigVersion = resp.Data.ConfigVer
 	}
 	return &cfg, cfg.ConfigVersion, nil
 }
