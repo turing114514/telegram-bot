@@ -121,11 +121,18 @@ func (b *Bot) shopList(c tele.Context, categoryID uint, page int) error {
 	}
 	resp, err := b.api.GetProducts(ctx, locale, catIDStr, page+1, orderPW)
 	if err != nil {
-		b.log.Warnw("get products failed", "error", err)
+		b.log.Warnw("get products failed", "category_id", categoryID, "page", page, "error", err)
+		// 在 callback 场景下用 Edit，避免用户看不到错误
+		if c.Callback() != nil {
+			return c.Edit(b.bundle.T(locale, "common.error_generic"))
+		}
 		return c.Send(b.bundle.T(locale, "common.error_generic"))
 	}
 	if len(resp.Items) == 0 {
-		_ = c.Respond()
+		if c.Callback() != nil {
+			_ = c.Respond()
+			return c.Send(b.bundle.T(locale, "shop.no_more_products"))
+		}
 		return c.Send(b.bundle.T(locale, "shop.no_more_products"))
 	}
 	kb := &tele.ReplyMarkup{}
