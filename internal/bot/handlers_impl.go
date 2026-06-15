@@ -618,15 +618,13 @@ func (b *Bot) handleRechargeCallback(c tele.Context, action string) error {
 		}
 		return b.handleRechargeAmount(c, parts[1], locale)
 	case "do":
-		if len(parts) < 2 {
+		// data: "do:amount:channelID"（剥前缀+join 后格式）
+		if len(parts) < 3 {
+			b.log.Warnw("recharge do: missing amount or channel_id", "parts", parts)
 			return nil
 		}
-		inner := strings.SplitN(parts[1], "|", 2)
-		if len(inner) < 2 {
-			return nil
-		}
-		amount := inner[0]
-		channelID, _ := strconv.ParseUint(inner[1], 10, 64)
+		amount := parts[1]
+		channelID, _ := strconv.ParseUint(parts[2], 10, 64)
 		ctx, cancel := context.WithTimeout(ctxFromTele(c), b.apiTimeout())
 		defer cancel()
 		ident := buildIdentityPayload(c)
@@ -1140,15 +1138,13 @@ func (b *Bot) handlePayCallback(c tele.Context, action string) error {
 		return c.Send(b.bundle.T(locale, "orders.pay_title"),
 			&tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
 	case "do":
-		if len(parts) < 2 {
+		// data: "do:orderID:channelID"（剥前缀+join 后格式）
+		if len(parts) < 3 {
+			b.log.Warnw("pay do: missing order_id or channel_id", "parts", parts)
 			return nil
 		}
-		inner := strings.SplitN(parts[1], "|", 2)
-		if len(inner) < 2 {
-			return nil
-		}
-		orderID, _ := strconv.ParseUint(inner[0], 10, 64)
-		channelID, _ := strconv.ParseUint(inner[1], 10, 64)
+		orderID, _ := strconv.ParseUint(parts[1], 10, 64)
+		channelID, _ := strconv.ParseUint(parts[2], 10, 64)
 		b.log.Infow("create payment requested", "order_id", orderID, "channel_id", channelID)
 		ctx, cancel := context.WithTimeout(ctxFromTele(c), b.apiTimeout())
 		defer cancel()
