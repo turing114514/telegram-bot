@@ -9,13 +9,15 @@ import (
 // onCallback 处理内联键盘回调
 func (b *Bot) onCallback(c tele.Context) error {
 	data := c.Callback().Data
+	b.log.Debugw("callback received", "data", data, "from", c.Sender().ID)
 	if data == "" {
 		c.Respond()
 		return nil
 	}
-	// kb.Data(text, unique, data...) 用 | 分隔
+	// kb.Data(text, unique, data...) 用 | 分隔，第一个元素是 handler 前缀
 	parts := strings.Split(data, "|")
 	if len(parts) < 2 {
+		b.log.Warnw("callback data too short", "data", data)
 		c.Respond()
 		return nil
 	}
@@ -55,6 +57,9 @@ func (b *Bot) onCallback(c tele.Context) error {
 		if parts[1] == "main" {
 			return b.handleBackMain(c)
 		}
+	default:
+		b.log.Warnw("unhandled callback prefix", "prefix", parts[0], "data", data)
+		c.Respond()
 	}
 	return nil
 }
