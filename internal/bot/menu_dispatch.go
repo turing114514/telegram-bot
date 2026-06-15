@@ -28,28 +28,28 @@ func (b *Bot) onCallback(c tele.Context) error {
 		return b.handleLangCallback(c, parts[1])
 	case "recharge":
 		c.Respond()
-		return b.handleRechargeCallback(c, strings.Join(parts[1:], "|"))
+		return b.handleRechargeCallback(c, strings.Join(parts[1:], ":"))
 	case "withdraw":
 		c.Respond()
-		return b.handleWithdrawCallback(c, strings.Join(parts[1:], "|"))
+		return b.handleWithdrawCallback(c, strings.Join(parts[1:], ":"))
 	case "pay":
 		c.Respond()
-		return b.handlePayCallback(c, strings.Join(parts[1:], "|"))
+		return b.handlePayCallback(c, strings.Join(parts[1:], ":"))
 	case "shop":
 		c.Respond()
-		return b.handleShopCallback(c, strings.Join(parts[1:], "|"))
+		return b.handleShopCallback(c, strings.Join(parts[1:], ":"))
 	case "order":
 		c.Respond()
-		return b.handleOrderCallback(c, strings.Join(parts[1:], "|"))
+		return b.handleOrderCallback(c, strings.Join(parts[1:], ":"))
 	case "gift":
 		c.Respond()
-		return b.handleGiftCallback(c, strings.Join(parts[1:], "|"))
+		return b.handleGiftCallback(c, strings.Join(parts[1:], ":"))
 	case "affiliate":
 		c.Respond()
-		return b.handleAffiliateCallback(c, strings.Join(parts[1:], "|"))
+		return b.handleAffiliateCallback(c, strings.Join(parts[1:], ":"))
 	case "wallet":
 		c.Respond()
-		return b.handleWalletCallback(c, strings.Join(parts[1:], "|"))
+		return b.handleWalletCallback(c, strings.Join(parts[1:], ":"))
 	case "back":
 		c.Respond()
 		if parts[1] == "main" {
