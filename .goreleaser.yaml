@@ -1,4 +1,5 @@
 project_name: telegram-bot
+version: 2
 
 before:
   hooks:
@@ -19,7 +20,8 @@ builds:
       - arm64
     flags:
       - -trimpath
-      - -ldflags=-s -w -X main.Version={{.Version}}
+    ldflags:
+      - -s -w -X main.Version={{.Version}}
     ignore:
       - goos: windows
         goarch: arm64
@@ -27,10 +29,12 @@ builds:
 archives:
   - id: default
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    format: tar.gz
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     files:
       - configs/config.example.yaml
       - README.md
@@ -41,7 +45,7 @@ checksum:
   algorithm: sha256
 
 snapshot:
-  name_template: "{{ incpatch .Version }}-next"
+  version_template: "{{ incpatch .Version }}-next"
 
 changelog:
   sort: asc
