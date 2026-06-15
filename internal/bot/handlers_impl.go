@@ -99,7 +99,7 @@ func (b *Bot) handleShopCallback(c tele.Context, action string) error {
 		// 商品详情点"立即购买"：先把数量写 session，再进数量选择页
 		return b.shopBuy(c, uint(pid), qty)
 	case "qty":
-		// 点预设数量按钮：直接确认订单
+		// 点预设数量按钮：进预览页（可输入优惠码 / 确认下单）
 		var pid uint64
 		var qty int
 		if len(parts) > 1 {
@@ -115,8 +115,9 @@ func (b *Bot) handleShopCallback(c tele.Context, action string) error {
 		sess.LastProductID = uint(pid)
 		sess.LastProductQty = qty
 		sess.PendingOrderItems = []state.OrderItemDraft{{ProductID: uint(pid), Quantity: qty}}
+		sess.PendingCoupon = ""
 		locale := b.resolveUserLocale(c, sess)
-		return b.handleConfirmOrder(c, locale)
+		return b.handleShopPreview(c, locale)
 	case "custom":
 		// 自定义数量：标记 session 等用户输入
 		var pid uint64
@@ -128,13 +129,26 @@ func (b *Bot) handleShopCallback(c tele.Context, action string) error {
 		locale := b.resolveUserLocale(c, sess)
 		_ = c.Respond()
 		return c.Send(b.bundle.T(locale, "shop.quantity_custom_prompt"))
-	case "preview":
+	case "confirm":
+		// 预览页点"确认下单"
 		locale := b.resolveUserLocale(c, b.state.Get(c.Sender().ID))
 		return b.handleConfirmOrder(c, locale)
+	case "preview":
+		// 兼容旧逻辑：直接进预览
+		locale := b.resolveUserLocale(c, b.state.Get(c.Sender().ID))
+		return b.handleShopPreview(c, locale)
 	case "coupon":
+		// 预览页点"使用优惠码"：标记 session 等用户输入
 		sess := b.state.Get(c.Sender().ID)
 		sess.AwaitingCoupon = true
+		_ = c.Respond()
 		return c.Send(b.bundle.T(b.resolveUserLocale(c, sess), "shop.coupon_label"))
+	case "coupon_remove":
+		// 预览页点"移除优惠码"
+		sess := b.state.Get(c.Sender().ID)
+		sess.PendingCoupon = ""
+		locale := b.resolveUserLocale(c, sess)
+		return b.handleShopPreview(c, locale)
 	}
 	return nil
 }
@@ -265,8 +279,8 @@ func (b *Bot) shopBuy(c tele.Context, productID uint, qty int) error {
 		&tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
 }
 
-// handleConfirmOrder 先 preview 校验，再创建订单
-func (b *Bot) handleConfirmOrder(c tele.Context, locale string) error {
+// handleShopPreview 只调 PreviewOrder（不创建），显示预览页面供用户输入优惠码或确认
+func (b *Bot) handleShopPreview(c tele.Context, locale string) error {
 	sess := b.state.Get(c.Sender().ID)
 	if len(sess.PendingOrderItems) == 0 {
 		return c.Send(b.bundle.T(locale, "common.error_generic"))
@@ -293,7 +307,6 @@ func (b *Bot) handleConfirmOrder(c tele.Context, locale string) error {
 		}
 		return c.Send(b.bundle.T(locale, "common.error_generic"))
 	}
-	// 显示校验结果
 	if !preview.Valid {
 		var sb strings.Builder
 		for _, e := range preview.ValidationErrors {
@@ -301,9 +314,79 @@ func (b *Bot) handleConfirmOrder(c tele.Context, locale string) error {
 			sb.WriteString(e)
 			sb.WriteString("\n")
 		}
+		if c.Callback() != nil {
+			_ = c.Respond()
+			return c.Send(b.bundle.T(locale, "common.error_generic") + "\n" + sb.String())
+		}
 		return c.Send(b.bundle.T(locale, "common.error_generic") + "\n" + sb.String())
 	}
-	// 创建订单
+
+	// 渲染预览消息
+	var sb strings.Builder
+	sb.WriteString(b.bundle.T(locale, "shop.preview_title"))
+	sb.WriteString("\n")
+	for _, it := range preview.Items {
+		title := it.ProductTitle
+		if it.SKUName != "" {
+			title = fmt.Sprintf("%s (%s)", it.ProductTitle, it.SKUName)
+		}
+		sb.WriteString(b.bundle.MustTr(locale, "shop.preview_item", map[string]any{
+			"Title":    title,
+			"Quantity": it.Quantity,
+			"Subtotal": it.Subtotal,
+			"Currency": preview.Currency,
+		}))
+		sb.WriteString("\n")
+	}
+	if sess.PendingCoupon != "" {
+		sb.WriteString(b.bundle.MustTr(locale, "shop.coupon_applied", map[string]any{
+			"Discount": preview.CouponDiscount,
+			"Currency": preview.Currency,
+		}))
+		sb.WriteString("\n")
+	}
+	sb.WriteString(b.bundle.MustTr(locale, "shop.preview_total", map[string]any{
+		"Total":    preview.TotalAmount,
+		"Currency": preview.Currency,
+	}))
+
+	kb := &tele.ReplyMarkup{}
+	rows := []tele.Row{
+		kb.Row(kb.Data(b.bundle.T(locale, "shop.confirm_order"), "shop", "shop", "confirm")),
+	}
+	if sess.PendingCoupon == "" {
+		// 没设优惠码时显示「使用优惠码」按钮
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "shop.coupon_label"), "shop", "shop", "coupon")))
+	} else {
+		// 已设优惠码时显示「移除优惠码」按钮
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "shop.coupon_remove"), "shop", "shop", "coupon_remove")))
+	}
+	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"),
+		"shop", "shop", "qty", fmt.Sprintf("%d", sess.PendingOrderItems[0].ProductID),
+		fmt.Sprintf("%d", sess.PendingOrderItems[0].Quantity))))
+	kb.Inline(rows...)
+	if c.Callback() != nil {
+		return c.Edit(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
+	}
+	return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
+}
+
+// handleConfirmOrder 创建订单（不再 preview，由 handleShopPreview 负责）
+func (b *Bot) handleConfirmOrder(c tele.Context, locale string) error {
+	sess := b.state.Get(c.Sender().ID)
+	if len(sess.PendingOrderItems) == 0 {
+		return c.Send(b.bundle.T(locale, "common.error_generic"))
+	}
+	ctx, cancel := context.WithTimeout(ctxFromTele(c), b.apiTimeout())
+	defer cancel()
+	ident := buildIdentityPayload(c)
+	items := make([]api.OrderItemRequest, 0, len(sess.PendingOrderItems))
+	for _, it := range sess.PendingOrderItems {
+		items = append(items, api.OrderItemRequest{
+			ProductID: it.ProductID, SKUID: it.SKUID, Quantity: it.Quantity,
+			FulfillmentType: it.FulfillmentType,
+		})
+	}
 	order, err := b.api.CreateOrder(ctx, api.OrderRequest{
 		IdentityPayload: ident,
 		Items:           items,
@@ -1080,24 +1163,35 @@ func (b *Bot) handlePayCallback(c tele.Context, action string) error {
 			}
 			return c.Send(b.bundle.T(locale, "common.error_generic"))
 		}
-		var text strings.Builder
-		text.WriteString(b.bundle.MustTr(locale, "orders.pay_created", map[string]any{
+		var sb strings.Builder
+		sb.WriteString(b.bundle.MustTr(locale, "orders.pay_created", map[string]any{
 			"Amount":   formatter.FormatAmount(resp.Amount, resp.Currency),
 			"Currency": resp.Currency,
 		}))
 		if resp.ChannelName != "" {
-			text.WriteString("\n")
-			text.WriteString(b.bundle.MustTr(locale, "orders.pay_choose_channel", map[string]any{"Name": resp.ChannelName}))
+			sb.WriteString("\n")
+			sb.WriteString(b.bundle.MustTr(locale, "orders.pay_choose_channel", map[string]any{"Name": resp.ChannelName}))
 		}
+
+		kb := &tele.ReplyMarkup{}
+		rows := []tele.Row{}
 		if resp.PayURL != "" {
-			text.WriteString("\n")
-			text.WriteString(b.bundle.T(locale, "orders.pay_url_label") + ": " + resp.PayURL)
+			rows = append(rows, kb.Row(kb.URL(b.bundle.T(locale, "orders.pay_url_label"), resp.PayURL)))
 		}
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "orders.title"), "order", "order", "detail", fmt.Sprintf("%d", orderID))))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")))
+		kb.Inline(rows...)
+
 		if resp.QRCode != "" {
-			text.WriteString("\n")
-			text.WriteString(b.bundle.T(locale, "orders.qr_label") + ": " + resp.QRCode)
+			// 单独发一张二维码图片（点开可识别 / 长按可扫码）
+			photo := &tele.Photo{File: tele.FromURL(resp.QRCode), Caption: b.bundle.T(locale, "orders.qr_label")}
+			if _, err := b.RawTelebot().Send(c.Chat(), photo); err != nil {
+				b.log.Warnw("send qr photo failed, fallback to text", "error", err)
+				sb.WriteString("\n")
+				sb.WriteString(b.bundle.T(locale, "orders.qr_label") + ": " + resp.QRCode)
+			}
 		}
-		return c.Send(text.String())
+		return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
 	}
 	return nil
 }

@@ -75,7 +75,7 @@ func (b *Bot) dispatchFreeformText(c tele.Context, text string) error {
 		sess.LastProductID = pid
 		sess.LastProductQty = qty
 		sess.PendingOrderItems = []state.OrderItemDraft{{ProductID: pid, Quantity: qty}}
-		return b.handleConfirmOrder(c, locale)
+		return b.handleShopPreview(c, locale)
 	}
 	if sess.AwaitingGiftCard {
 		sess.AwaitingGiftCard = false
@@ -84,7 +84,7 @@ func (b *Bot) dispatchFreeformText(c tele.Context, text string) error {
 	if sess.AwaitingCoupon {
 		sess.AwaitingCoupon = false
 		sess.PendingCoupon = text
-		return b.handleConfirmOrder(c, locale)
+		return b.handleShopPreview(c, locale)
 	}
 	if sess.WithdrawPendingAmount == "await_amount" {
 		return b.handleWithdrawAmount(c, text, locale)

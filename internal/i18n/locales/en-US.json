@@ -51,7 +51,9 @@
     "coupon_label": "Coupon code (optional)",
     "coupon_apply": "Apply coupon",
     "coupon_skip": "Skip",
-    "coupon_applied": "✅ Coupon applied, discount: {{.Discount}} {{.Currency}}"
+    "coupon_remove": "🚫 Remove coupon",
+    "coupon_applied": "✅ Coupon applied, discount: {{.Discount}} {{.Currency}}",
+    "coupon_input_prompt": "Reply with the coupon code:"
   },
   "orders": {
     "title": "📦 My Orders (page {{.Page}}/{{.TotalPage}})",

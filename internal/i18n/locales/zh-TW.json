@@ -51,7 +51,9 @@
     "coupon_label": "優惠碼（可選）",
     "coupon_apply": "使用優惠碼",
     "coupon_skip": "不使用",
-    "coupon_applied": "✅ 優惠碼已套用，優惠：{{.Discount}} {{.Currency}}"
+    "coupon_remove": "🚫 移除優惠碼",
+    "coupon_applied": "✅ 優惠碼已套用，優惠：{{.Discount}} {{.Currency}}",
+    "coupon_input_prompt": "請回覆優惠碼："
   },
   "orders": {
     "title": "📦 我的訂單（第 {{.Page}}/{{.TotalPage}} 頁）",
