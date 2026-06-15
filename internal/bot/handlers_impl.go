@@ -1149,6 +1149,7 @@ func (b *Bot) handlePayCallback(c tele.Context, action string) error {
 		}
 		orderID, _ := strconv.ParseUint(inner[0], 10, 64)
 		channelID, _ := strconv.ParseUint(inner[1], 10, 64)
+		b.log.Infow("create payment requested", "order_id", orderID, "channel_id", channelID)
 		ctx, cancel := context.WithTimeout(ctxFromTele(c), b.apiTimeout())
 		defer cancel()
 		ident := buildIdentityPayload(c)
@@ -1158,11 +1159,14 @@ func (b *Bot) handlePayCallback(c tele.Context, action string) error {
 			ChannelID:       uint(channelID),
 		})
 		if err != nil {
+			b.log.Warnw("create payment failed", "order_id", orderID, "channel_id", channelID, "error", err)
 			if ce, ok := api.IsChannelError(err); ok {
 				return c.Send(ce.Msg)
 			}
 			return c.Send(b.bundle.T(locale, "common.error_generic"))
 		}
+		b.log.Infow("payment created", "order_id", orderID, "amount", resp.Amount, "currency", resp.Currency, "has_pay_url", resp.PayURL != "", "has_qr", resp.QRCode != "")
+		_ = c.Respond()
 		var sb strings.Builder
 		sb.WriteString(b.bundle.MustTr(locale, "orders.pay_created", map[string]any{
 			"Amount":   formatter.FormatAmount(resp.Amount, resp.Currency),
