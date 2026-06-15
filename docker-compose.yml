@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  telegram-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: telegram-bot:local
+    container_name: telegram-bot
+    restart: unless-stopped
+    command: ["-config", "/etc/telegram-bot/config.yaml"]
+    volumes:
+      - ./configs/config.yaml:/etc/telegram-bot/config.yaml:ro
+      - ./logs:/var/log/telegram-bot
+    environment:
+      TG_CHANNEL_KEY: "${TG_CHANNEL_KEY}"
+      TG_CHANNEL_SECRET: "${TG_CHANNEL_SECRET}"
+      TZ: Asia/Shanghai
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8444/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - bot-net
+
+networks:
+  bot-net:
+    driver: bridge

@@ -1,0 +1,27 @@
+# Build artifacts
+dist/
+*.exe
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Local config (do not embed secrets)
+configs/config.yaml
+configs/config.local.yaml
+
+# Documentation / CI (not needed in build context)
+*.md
+.github/
+.goreleaser.yaml
+Dockerfile
+.dockerignore

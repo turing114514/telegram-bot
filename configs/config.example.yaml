@@ -1,0 +1,33 @@
+# Dujiao-Next Telegram Bot 配置文件
+
+server:
+  listen: ":8444"                # 接收 dujiao BotNotify 主动回调的 HTTP 监听地址
+  public_base_url: ""            # 可选：对外暴露的公网基址
+  max_body_bytes: 1048576        # HTTP body 最大字节数（默认 1MB）
+
+api:
+  base_url: "https://shop.example.com"   # dujiao-next API base URL
+  timeout_seconds: 15                     # 单次 API 请求超时
+  insecure_skip_verify: false             # 私签证书时置 true（仅内网）
+  max_idle_conns_per_host: 16
+
+bot:
+  machine_code: ""                # 自定义机器码（留空自动取 hostname）
+  bot_version: "1.0.0"
+  webhook_status: "active"        # active | inactive | unknown
+  license_status: "active"        # active | expired | revoked | suspended
+  license_expires_at: ""          # RFC3339 格式，如 2026-12-31T23:59:59Z
+  default_locale: "zh-CN"         # zh-CN / zh-TW / en-US
+  default_currency: "CNY"         # 默认货币代码
+  update_interval_seconds: 25     # 心跳间隔（须 < 60s）
+  config_reload_seconds: 60       # 配置重拉间隔
+  poll_timeout_seconds: 10
+  poll_limit: 100
+  product_page_size: 5            # 商品列表每页条数
+  order_page_size: 5              # 订单列表每页条数
+  wallet_page_size: 10            # 钱包流水每页条数
+  affiliate_page_size: 8          # 推广佣金/提现每页条数
+  quantity_options: [1, 2, 5, 10] # 商品购买快速选择数量
+
+log:
+  level: "info"                   # debug / info / warn / error
