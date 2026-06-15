@@ -1,8 +1,13 @@
 package bot
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -1188,8 +1193,7 @@ func (b *Bot) handlePayCallback(c tele.Context, action string) error {
 
 		if resp.QRCode != "" {
 			// 单独发一张二维码图片（点开可识别 / 长按可扫码）
-			photo := &tele.Photo{File: tele.FromURL(resp.QRCode), Caption: b.bundle.T(locale, "orders.qr_label")}
-			if _, err := b.RawTelebot().Send(c.Chat(), photo); err != nil {
+			if err := b.sendQRCode(c, resp.QRCode, b.bundle.T(locale, "orders.qr_label")); err != nil {
 				b.log.Warnw("send qr photo failed, fallback to text", "error", err)
 				sb.WriteString("\n")
 				sb.WriteString(b.bundle.T(locale, "orders.qr_label") + ": " + resp.QRCode)
@@ -1198,4 +1202,55 @@ func (b *Bot) handlePayCallback(c tele.Context, action string) error {
 		return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
 	}
 	return nil
+}
+
+// sendQRCode 发送二维码图片：依次尝试 FromURL / 自下载 bytes / data:base64
+func (b *Bot) sendQRCode(c tele.Context, qr, caption string) error {
+	// 1. data:base64,... 形式直接解码
+	if strings.HasPrefix(qr, "data:") {
+		if comma := strings.Index(qr, ","); comma > 0 {
+			mime := qr[len("data:"):comma]
+			if !strings.HasPrefix(mime, "image/") {
+				return fmt.Errorf("unsupported data URI mime: %s", mime)
+			}
+			b64 := qr[comma+1:]
+			// 处理 URL-safe base64
+			b64 = strings.ReplaceAll(b64, "-", "+")
+			b64 = strings.ReplaceAll(b64, "_", "/")
+			raw, err := base64.StdEncoding.DecodeString(b64)
+			if err != nil {
+				return fmt.Errorf("decode base64: %w", err)
+			}
+			photo := &tele.Photo{File: tele.FromReader(bytes.NewReader(raw)), Caption: caption}
+			_, err = b.RawTelebot().Send(c.Chat(), photo)
+			return err
+		}
+		return errors.New("invalid data URI")
+	}
+
+	// 2. 普通 HTTP(S) URL：先试 FromURL（让 Telegram 服务器去拉）
+	photo := &tele.Photo{File: tele.FromURL(qr), Caption: caption}
+	if _, err := b.RawTelebot().Send(c.Chat(), photo); err == nil {
+		return nil
+	} else {
+		b.log.Debugw("FromURL failed, try downloading ourselves", "error", err, "url", qr)
+	}
+
+	// 3. 自己下载再上传（应对内网 URL / 鉴权头 / 防盗链）
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Get(qr)
+	if err != nil {
+		return fmt.Errorf("download qr: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("download qr: status %d", resp.StatusCode)
+	}
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("read qr body: %w", err)
+	}
+	photo = &tele.Photo{File: tele.FromReader(bytes.NewReader(raw)), Caption: caption}
+	_, err = b.RawTelebot().Send(c.Chat(), photo)
+	return err
 }
