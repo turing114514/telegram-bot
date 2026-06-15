@@ -43,10 +43,13 @@ func main() {
 	}
 	defer log.Sync()
 
-	channelKey := config.ChannelKey()
-	channelSecret := config.ChannelSecret()
+	channelKey := cfg.ChannelKey()
+	channelSecret := cfg.ChannelSecret()
 	if channelKey == "" || channelSecret == "" {
-		log.Fatalw("TG_CHANNEL_KEY / TG_CHANNEL_SECRET env vars are required")
+		log.Fatalw("channel key/secret are required: set channel.key/channel.secret in config or TG_CHANNEL_KEY/TG_CHANNEL_SECRET env vars")
+	}
+	if cfg.Channel.Key != "" || cfg.Channel.Secret != "" {
+		log.Warnw("channel credentials loaded from config file; consider using environment variables to avoid committing secrets")
 	}
 
 	apiClient, err := api.NewClient(api.Config{

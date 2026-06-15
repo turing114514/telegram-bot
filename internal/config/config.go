@@ -12,10 +12,11 @@ import (
 
 // Config 顶层配置
 type Config struct {
-	Server ServerConfig `yaml:"server"`
-	API    APIConfig    `yaml:"api"`
-	Bot    BotConfig    `yaml:"bot"`
-	Log    LogConfig    `yaml:"log"`
+	Server  ServerConfig  `yaml:"server"`
+	API     APIConfig     `yaml:"api"`
+	Channel ChannelConfig `yaml:"channel"`
+	Bot     BotConfig     `yaml:"bot"`
+	Log     LogConfig     `yaml:"log"`
 }
 
 // ServerConfig HTTP 回调服务配置
@@ -27,10 +28,16 @@ type ServerConfig struct {
 
 // APIConfig dujiao-next Channel API 配置
 type APIConfig struct {
-	BaseURL            string `yaml:"base_url"`
-	TimeoutSeconds     int    `yaml:"timeout_seconds"`
-	InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
-	MaxIdleConnsPerHost int   `yaml:"max_idle_conns_per_host"`
+	BaseURL             string `yaml:"base_url"`
+	TimeoutSeconds      int    `yaml:"timeout_seconds"`
+	InsecureSkipVerify  bool   `yaml:"insecure_skip_verify"`
+	MaxIdleConnsPerHost int    `yaml:"max_idle_conns_per_host"`
+}
+
+// ChannelConfig 渠道客户端凭证（敏感，建议优先用环境变量）
+type ChannelConfig struct {
+	Key    string `yaml:"key"`
+	Secret string `yaml:"secret"`
 }
 
 // BotConfig Telegram Bot 自身配置
@@ -76,6 +83,12 @@ func Load(path string) (*Config, error) {
 }
 
 func applyEnvOverrides(cfg *Config) {
+	if v := strings.TrimSpace(os.Getenv("TG_CHANNEL_KEY")); v != "" {
+		cfg.Channel.Key = v
+	}
+	if v := strings.TrimSpace(os.Getenv("TG_CHANNEL_SECRET")); v != "" {
+		cfg.Channel.Secret = v
+	}
 	if v := strings.TrimSpace(os.Getenv("TG_API_BASE_URL")); v != "" {
 		cfg.API.BaseURL = v
 	}
@@ -169,11 +182,11 @@ func (c *Config) normalize() error {
 	return nil
 }
 
-// ChannelKey 返回注入的渠道客户端 key
-func ChannelKey() string { return strings.TrimSpace(os.Getenv("TG_CHANNEL_KEY")) }
+// ChannelKey 返回渠道客户端 key（YAML → 环境变量）
+func (c *Config) ChannelKey() string { return strings.TrimSpace(c.Channel.Key) }
 
-// ChannelSecret 返回注入的渠道客户端 secret
-func ChannelSecret() string { return strings.TrimSpace(os.Getenv("TG_CHANNEL_SECRET")) }
+// ChannelSecret 返回渠道客户端 secret（YAML → 环境变量）
+func (c *Config) ChannelSecret() string { return strings.TrimSpace(c.Channel.Secret) }
 
 // APIBaseURL 对外暴露给 cmd 使用的 API base
 func (c *Config) APIBaseURL() string { return c.API.BaseURL }

@@ -156,7 +156,7 @@ log:
   level: "info"
 ```
 
-设置渠道凭证（**必须用环境变量**）：
+设置渠道凭证（**推荐环境变量，也可写入 `configs/config.yaml` 的 `channel` 节**）：
 
 ```bash
 sudo tee /opt/telegram-bot/.env > /dev/null <<'EOF'
@@ -165,6 +165,16 @@ TG_CHANNEL_SECRET=<从后台复制的 ChannelSecret>
 EOF
 sudo chmod 600 /opt/telegram-bot/.env
 ```
+
+如选择写入 YAML：
+
+```yaml
+channel:
+  key: <ChannelKey>
+  secret: <ChannelSecret>
+```
+
+> ⚠️ 写在 YAML 里时，务必确保 `config.yaml` 不被提交到 git，且文件权限设置为 `600`。启动日志会打印一条警告提醒。
 
 #### systemd 托管
 
@@ -438,7 +448,7 @@ sudo journalctl -u telegram-bot -n 50
 
 常见错误：
 - `load config: open /opt/.../config.yaml: no such file` → 检查 `-config` 路径
-- `api: channel key is required` → 没设 `TG_CHANNEL_KEY`
+- `api: channel key is required` → 没设 `channel.key` 或 `TG_CHANNEL_KEY`
 - `api: base url is required` → `api.base_url` 为空
 - `bot: cannot start without initial bot config` → 拉不到 `bot_token`，检查：
   - 后台是否创建了 `channel_type=telegram_bot` 的客户端
@@ -483,7 +493,7 @@ sudo journalctl -u telegram-bot -n 50
 
 ## 8. 安全建议
 
-1. **Channel Secret 必须用环境变量**，不要写进 `config.yaml`
+1. **Channel Secret 推荐用环境变量**，避免写进 `config.yaml`；如必须写入，请确保文件权限 `600` 且不提交到 git。
 2. **`.env` 文件权限 600**，仅 `tgbot` 用户可读
 3. **Bot Token 视为密码**：泄露后立刻去 @BotFather `/revoke` 并更新后台
 4. **CallbackURL 限制来源**：nginx `allow / deny` 仅放通 dujiao 服务器 IP 段
@@ -516,7 +526,7 @@ sudo journalctl -u telegram-bot -n 50
 - [ ] 已保存 ChannelKey / ChannelSecret 至安全位置
 - [ ] 后台「Telegram Bot 设置」已启用并配置完毕
 - [ ] `config.yaml` 中 `api.base_url` 正确指向 dujiao-next
-- [ ] `TG_CHANNEL_KEY / TG_CHANNEL_SECRET` 已注入
+- [ ] `channel.key / channel.secret` 或 `TG_CHANNEL_KEY / TG_CHANNEL_SECRET` 已注入
 - [ ] `CallbackURL` 与 Bot 实际公网地址一致
 - [ ] nginx / 反代已配置 HTTPS（如启用）
 - [ ] systemd / docker 开机自启已配置
@@ -543,15 +553,17 @@ telegram-bot_1.0.0_linux_amd64.tar.gz
 
 ## 附录 B：环境变量速查
 
-| 变量 | 必填 | 默认 | 说明 |
-|---|---|---|---|
-| `TG_CHANNEL_KEY` | ✅ | — | 后台渠道客户端 ChannelKey |
-| `TG_CHANNEL_SECRET` | ✅ | — | 后台渠道客户端 ChannelSecret |
-| `TG_API_BASE_URL` | | 配置 `api.base_url` | API 基础 URL |
-| `TG_BOT_VERSION` | | `1.0.0` | 上报的 Bot 版本 |
-| `TG_MACHINE_CODE` | | hostname | 上报的机器码 |
-| `TG_DEFAULT_LOCALE` | | `zh-CN` | 默认语言 |
-| `TG_LISTEN` | | `:8444` | HTTP 监听地址 |
+| 变量 | 必填 | YAML 等价项 | 默认 | 说明 |
+|---|---|---|---|---|
+| `TG_CHANNEL_KEY` | ✅* | `channel.key` | — | 后台渠道客户端 ChannelKey |
+| `TG_CHANNEL_SECRET` | ✅* | `channel.secret` | — | 后台渠道客户端 ChannelSecret |
+| `TG_API_BASE_URL` | | `api.base_url` | — | API 基础 URL |
+| `TG_BOT_VERSION` | | `bot.bot_version` | `1.0.0` | 上报的 Bot 版本 |
+| `TG_MACHINE_CODE` | | `bot.machine_code` | hostname | 上报的机器码 |
+| `TG_DEFAULT_LOCALE` | | `bot.default_locale` | `zh-CN` | 默认语言 |
+| `TG_LISTEN` | | `server.listen` | `:8444` | HTTP 监听地址 |
+
+\* 必填但可写入 YAML；环境变量优先级高于 YAML。
 
 ## 附录 C：常用命令速查
 
@@ -577,5 +589,5 @@ sudo systemctl start telegram-bot
 
 # 配置自检
 /opt/telegram-bot/telegram-bot -config /opt/telegram-bot/configs/config.yaml
-# （应能看到 fatal: TG_CHANNEL_KEY env required，确认凭证已正确注入）
+# （应能看到 fatal: channel key/secret are required，确认凭证已正确注入）
 ```

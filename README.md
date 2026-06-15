@@ -78,8 +78,12 @@ server:
 api:
   base_url: "https://shop.example.com"
   timeout_seconds: 15
-  insecure_skip_verify: false    # 仅在内网自签证书时打开
+  insecure_skip_verify: false
   max_idle_conns_per_host: 16
+
+channel:
+  key: ""          # 渠道客户端 Channel Key（建议用环境变量注入）
+  secret: ""       # 渠道客户端 Channel Secret（建议用环境变量注入）
 
 bot:
   machine_code: ""               # 留空自动取 hostname
@@ -103,12 +107,12 @@ log:
   level: "info"
 ```
 
-环境变量（敏感配置）：
+环境变量（敏感配置，优先级高于 YAML）：
 
 | 变量 | 必填 | 说明 |
 |---|---|---|
-| `TG_CHANNEL_KEY` | ✅ | 后台创建客户端时返回 |
-| `TG_CHANNEL_SECRET` | ✅ | 后台创建客户端时返回 |
+| `TG_CHANNEL_KEY` | ✅* | 后台创建客户端时返回；也可写 `channel.key` |
+| `TG_CHANNEL_SECRET` | ✅* | 后台创建客户端时返回；也可写 `channel.secret` |
 | `TG_API_BASE_URL` | | 覆盖 `api.base_url` |
 | `TG_BOT_VERSION` | | 覆盖 `bot.bot_version` |
 | `TG_MACHINE_CODE` | | 覆盖 `bot.machine_code` |
@@ -117,6 +121,8 @@ log:
 | `TG_LICENSE_STATUS` | | 覆盖 `bot.license_status` |
 | `TG_LICENSE_EXPIRES_AT` | | 覆盖 `bot.license_expires_at`（RFC3339） |
 | `TG_LISTEN` | | 覆盖 `server.listen` |
+
+\* `TG_CHANNEL_KEY` / `TG_CHANNEL_SECRET` 也可以直接写在 YAML 的 `channel.key` / `channel.secret`，但生产环境强烈建议用环境变量注入。
 
 ## 内置菜单（7 项）
 
