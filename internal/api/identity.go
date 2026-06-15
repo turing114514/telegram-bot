@@ -32,7 +32,7 @@ type IdentityUser struct {
 	ID                    uint   `json:"id"`
 	Email                 string `json:"email"`
 	DisplayName           string `json:"display_name"`
-	Status                int    `json:"status"`
+	Status                string `json:"status"`
 	Locale                string `json:"locale"`
 	EmailVerified         bool   `json:"email_verified"`
 	PasswordSetupRequired bool   `json:"password_setup_required"`
