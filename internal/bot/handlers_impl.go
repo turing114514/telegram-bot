@@ -1,13 +1,8 @@
 package bot
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
-	"errors"
 	"fmt"
-	"io"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -1199,68 +1194,5 @@ func (b *Bot) handlePayCallback(c tele.Context, action string) error {
 	return nil
 }
 
-// sendQRCode 发送二维码图片：依次尝试 FromURL / 自下载 / data:base64
-// 全部图片形式失败后，调用方自行 fallback 到文本
-func (b *Bot) sendQRCode(c tele.Context, qr, caption string) error {
-	// 1. data:base64,... 形式直接解码
-	if strings.HasPrefix(qr, "data:") {
-		if comma := strings.Index(qr, ","); comma > 0 {
-			mime := qr[len("data:"):comma]
-			if !strings.HasPrefix(mime, "image/") {
-				return fmt.Errorf("unsupported data URI mime: %s", mime)
-			}
-			b64 := qr[comma+1:]
-			b64 = strings.ReplaceAll(b64, "-", "+")
-			b64 = strings.ReplaceAll(b64, "_", "/")
-			raw, err := base64.StdEncoding.DecodeString(b64)
-			if err != nil {
-				return fmt.Errorf("decode base64: %w", err)
-			}
-			return b.sendPhotoBytes(c, raw, caption)
-		}
-		return errors.New("invalid data URI")
-	}
-
-	// 2. 普通 HTTP(S) URL：先试 FromURL（让 Telegram 服务器去拉）
-	photo := &tele.Photo{File: tele.FromURL(qr), Caption: caption}
-	if b.sendPhoto(c, photo) != nil {
-		b.log.Debugw("FromURL photo failed, downloading ourselves", "url", qr)
-	}
-
-	// 3. 自己下载再上传
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Get(qr)
-	if err != nil {
-		return fmt.Errorf("download qr: %w", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		return fmt.Errorf("download qr: status %d", resp.StatusCode)
-	}
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("read qr body: %w", err)
-	}
-	b.log.Debugw("qr downloaded", "size_bytes", len(raw), "content_type", resp.Header.Get("Content-Type"))
-
-	if err := b.sendPhotoBytes(c, raw, caption); err != nil {
-		// 4. 最后试一次：作为 Document 发送
-		b.log.Debugw("photo send failed, trying as document", "error", err)
-		doc := &tele.Document{File: tele.FromReader(bytes.NewReader(raw)), Caption: caption}
-		if _, docErr := b.RawTelebot().Send(c.Chat(), doc); docErr != nil {
-			return fmt.Errorf("photo: %v, document: %v", err, docErr)
-		}
-	}
-	return nil
-}
-
-func (b *Bot) sendPhoto(c tele.Context, p *tele.Photo) error {
-	_, err := b.RawTelebot().Send(c.Chat(), p)
-	return err
-}
-
-func (b *Bot) sendPhotoBytes(c tele.Context, raw []byte, caption string) error {
-	photo := &tele.Photo{File: tele.FromReader(bytes.NewReader(raw)), Caption: caption}
-	_, err := b.RawTelebot().Send(c.Chat(), photo)
-	return err
-}
+// (sendQRCode 之前实现过完整的兜底链，但后端 qr_code 字段常返支付页面 URL
+// 而非图片，无法渲染。已禁用此函数，保留代码供后续后端修复后复用。)
