@@ -69,7 +69,7 @@ func (b *Bot) onHelp(c tele.Context) error {
 		if summary == "" {
 			summary = it.Key
 		}
-		rows = append(rows, kb.Row(kb.Data(summary, "help", it.Key)))
+		rows = append(rows, kb.Row(kb.Data(summary, "help", "help", it.Key)))
 	}
 	if supportURL != "" {
 		rows = append(rows, kb.Row(kb.URL(b.bundle.T(locale, "help.support_btn"), supportURL)))
@@ -105,7 +105,7 @@ func (b *Bot) onHelpItem(c tele.Context, key string) error {
 	}
 	sb.WriteString(content)
 	kb := &tele.ReplyMarkup{}
-	rows := []tele.Row{kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "help", "list"))}
+	rows := []tele.Row{kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "help", "help", "list"))}
 	if match.ShowSupportLink && cfg.Basic.SupportURL != "" {
 		rows = append(rows, kb.Row(kb.URL(b.bundle.T(locale, "help.support_btn"), cfg.Basic.SupportURL)))
 	}
@@ -122,12 +122,12 @@ func (b *Bot) onContactSupport(c tele.Context) error {
 	kb := &tele.ReplyMarkup{}
 	if cfg == nil || strings.TrimSpace(cfg.Basic.SupportURL) == "" {
 		text += "\n\n" + b.bundle.T(locale, "help.support_no_link")
-		kb.Inline(kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "help", "list")))
+		kb.Inline(kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "help", "help", "list")))
 		return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
 	}
 	kb.Inline(
 		kb.Row(kb.URL(b.bundle.T(locale, "help.support_btn"), cfg.Basic.SupportURL)),
-		kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "help", "list")),
+		kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "help", "help", "list")),
 	)
 	return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
 }
@@ -139,7 +139,7 @@ func (b *Bot) onLanguage(c tele.Context) error {
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{}
 	for _, code := range []string{"zh-CN", "zh-TW", "en-US"} {
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "lang."+code), "lang", code)))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "lang."+code), "lang", "lang", code)))
 	}
 	kb.Inline(rows...)
 	return c.Send(b.bundle.T(locale, "lang.title"),
