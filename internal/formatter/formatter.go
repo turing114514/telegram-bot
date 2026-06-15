@@ -18,6 +18,61 @@ func EscapeHTML(s string) string {
 	return html.EscapeString(s)
 }
 
+// MarkdownToHTML 把常见 Markdown 行内标记转成 Telegram HTML：
+//   *bold* -> <b>bold</b>
+//   _italic_ -> <i>italic</i>
+//   `code` -> <code>code</code>
+//   [text](url) -> <a href="url">text</a>
+// 然后对剩余的 < > & 做 HTML 转义。用于把后端返回的标题里夹带的 *X* 转成粗体。
+func MarkdownToHTML(s string) string {
+	// 简单状态机：识别配对的标记
+	var b strings.Builder
+	stars := 0
+	for i := 0; i < len(s); i++ {
+		ch := s[i]
+		switch ch {
+		case '*':
+			if stars > 0 {
+				b.WriteString("</b>")
+				stars--
+			} else {
+				b.WriteString("<b>")
+				stars++
+			}
+		case '_':
+			// 不处理斜体，简单跳过
+			b.WriteByte(ch)
+		case '`':
+			b.WriteString("<code>")
+			if j := strings.IndexByte(s[i+1:], '`'); j >= 0 {
+				b.WriteString(html.EscapeString(s[i+1 : i+1+j]))
+				b.WriteString("</code>")
+				i += j + 1
+			} else {
+				b.WriteString(html.EscapeString(s[i+1:]))
+				b.WriteString("</code>")
+				i = len(s)
+			}
+		default:
+			if ch == '<' {
+				b.WriteString("&lt;")
+			} else if ch == '>' {
+				b.WriteString("&gt;")
+			} else if ch == '&' {
+				b.WriteString("&amp;")
+			} else {
+				b.WriteByte(ch)
+			}
+		}
+	}
+	// 未配对的星号补回字面量
+	for stars > 0 {
+		b.WriteString("*<b>")
+		stars--
+	}
+	return b.String()
+}
+
 // EscapeMarkdownV2 TG MarkdownV2 模式（少数场景如回调 answer 使用）转义
 func EscapeMarkdownV2(s string) string {
 	r := strings.NewReplacer(

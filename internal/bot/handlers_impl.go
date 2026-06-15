@@ -326,9 +326,9 @@ func (b *Bot) handleShopPreview(c tele.Context, locale string) error {
 	sb.WriteString(b.bundle.T(locale, "shop.preview_title"))
 	sb.WriteString("\n")
 	for _, it := range preview.Items {
-		title := it.ProductTitle
+		title := formatter.MarkdownToHTML(it.ProductTitle)
 		if it.SKUName != "" {
-			title = fmt.Sprintf("%s (%s)", it.ProductTitle, it.SKUName)
+			title = fmt.Sprintf("%s (%s)", title, formatter.MarkdownToHTML(it.SKUName))
 		}
 		sb.WriteString(b.bundle.MustTr(locale, "shop.preview_item", map[string]any{
 			"Title":    title,
@@ -476,7 +476,7 @@ func (b *Bot) orderDetail(c tele.Context, orderID uint) error {
 	var itemsText strings.Builder
 	for _, it := range detail.Items {
 		itemsText.WriteString(b.bundle.MustTr(locale, "orders.item_line", map[string]any{
-			"Title":    formatter.EscapeHTML(it.ProductTitle),
+			"Title":    formatter.MarkdownToHTML(it.ProductTitle),
 			"Quantity": it.Quantity,
 			"Subtotal": formatter.FormatAmount(it.Subtotal, detail.Currency),
 			"Currency": detail.Currency,
