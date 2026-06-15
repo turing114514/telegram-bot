@@ -149,6 +149,7 @@
     "title": "❓ Help Center",
     "empty": "No help topics available",
     "view_detail": "View details",
+    "back_to_list": "⬅️ Back to help list",
     "support_btn": "💬 Contact support",
     "support_no_link": "Support link is not configured, please contact the admin",
     "support_prompt": "For human support, please tap the button below"

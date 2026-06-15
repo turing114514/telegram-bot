@@ -149,6 +149,7 @@
     "title": "❓ 帮助中心",
     "empty": "暂无可用的帮助主题",
     "view_detail": "查看详情",
+    "back_to_list": "⬅️ 返回帮助列表",
     "support_btn": "💬 联系客服",
     "support_no_link": "客服链接未配置，请联系管理员",
     "support_prompt": "如需人工客服，请点击下方按钮"

@@ -36,11 +36,11 @@ func (b *Bot) onCallback(c tele.Context) error {
 		return b.handleHelpCallback(c, strings.Join(parts[1:], "|"))
 	case "lang":
 		c.Respond()
-		// data: "lang|lang|<code>"，第三个元素是 code
-		if len(parts) < 3 {
+		// data: "lang|<code>"，第二个元素是 code
+		if len(parts) < 2 {
 			return nil
 		}
-		return b.handleLangCallback(c, parts[2])
+		return b.handleLangCallback(c, parts[1])
 	case "recharge":
 		c.Respond()
 		return b.handleRechargeCallback(c, strings.Join(parts[1:], ":"))

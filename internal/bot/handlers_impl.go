@@ -1191,17 +1191,9 @@ func (b *Bot) handlePayCallback(c tele.Context, action string) error {
 		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")))
 		kb.Inline(rows...)
 
-		if resp.QRCode != "" {
-			// 单独发一张二维码图片（点开可识别 / 长按可扫码）
-			if err := b.sendQRCode(c, resp.QRCode, b.bundle.T(locale, "orders.qr_label")); err != nil {
-				b.log.Warnw("send qr photo failed, falling back", "error", err, "qr_url", resp.QRCode)
-				// 图片发送失败时，至少让用户能点 PayURL 按钮完成支付
-				// 把 QR URL 拼到消息文本里（用户可点击 PayURL 按钮）
-				sb.WriteString("\n")
-				sb.WriteString(b.bundle.T(locale, "orders.qr_label") + ":\n")
-				sb.WriteString(resp.QRCode)
-			}
-		}
+		// QR 码图片发送已禁用：后端 qr_code 字段常返回支付页面 URL（非图片），
+		// 无法渲染。直接用 PayURL 按钮（跳转支付页）即可。
+		_ = resp.QRCode
 		return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
 	}
 	return nil

@@ -113,23 +113,76 @@ func (b *Bot) onHelpItem(c tele.Context, key string) error {
 	return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
 }
 
-// onContactSupport 直接展示客服入口
+// onContactSupport 展示帮助中心（带客服链接按钮）
+// - 始终先列出帮助主题（用户能看到「怎么下单」「订单问题」等自助指南）
+// - 如果客服链接配了，再在底部加一个跳转按钮
 func (b *Bot) onContactSupport(c tele.Context) error {
 	sess := b.state.Get(c.Sender().ID)
 	locale := b.resolveUserLocale(c, sess)
 	cfg := b.CurrentBotConfig()
-	text := b.bundle.T(locale, "help.support_prompt")
-	kb := &tele.ReplyMarkup{}
-	if cfg == nil || strings.TrimSpace(cfg.Basic.SupportURL) == "" {
-		text += "\n\n" + b.bundle.T(locale, "help.support_no_link")
-		kb.Inline(kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "help", "help", "list")))
-		return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
+
+	// 优先复用 onHelp：列帮助主题（与 /help 一致）
+	if cfg == nil {
+		return b.onHelp(c)
 	}
-	kb.Inline(
-		kb.Row(kb.URL(b.bundle.T(locale, "help.support_btn"), cfg.Basic.SupportURL)),
-		kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "help", "help", "list")),
-	)
-	return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
+
+	var sb strings.Builder
+	if !cfg.Help.Enabled || len(cfg.Help.Items) == 0 {
+		// 没配帮助主题时显示原 fallback 文案
+		sb.WriteString(b.bundle.T(locale, "help.support_prompt"))
+	} else {
+		// 列帮助主题
+		title := pickLocalized(cfg.Help.Title, locale, b.cfg.Bot.DefaultLocale)
+		intro := pickLocalized(cfg.Help.Intro, locale, b.cfg.Bot.DefaultLocale)
+		enabled := []api.BotConfigHelpItem{}
+		for _, it := range cfg.Help.Items {
+			if it.Enabled {
+				enabled = append(enabled, it)
+			}
+		}
+		sort.SliceStable(enabled, func(i, j int) bool { return enabled[i].Order < enabled[j].Order })
+
+		if title != "" {
+			sb.WriteString(title)
+		}
+		if intro != "" {
+			sb.WriteString("\n\n")
+			sb.WriteString(intro)
+		}
+		sb.WriteString("\n")
+		for i, it := range enabled {
+			summary := pickLocalized(it.Summary, locale, b.cfg.Bot.DefaultLocale)
+			if summary == "" {
+				summary = pickLocalized(it.Title, locale, b.cfg.Bot.DefaultLocale)
+			}
+			sb.WriteString(fmt.Sprintf("\n%d. %s", i+1, summary))
+		}
+	}
+
+	// 客服链接
+	supportURL := ""
+	if cfg != nil {
+		supportURL = strings.TrimSpace(cfg.Basic.SupportURL)
+	}
+
+	kb := &tele.ReplyMarkup{}
+	if supportURL != "" {
+		// 配了客服链接：底部加跳转按钮 + 返回帮助列表
+		kb.Inline(
+			kb.Row(kb.URL(b.bundle.T(locale, "help.support_btn"), supportURL)),
+			kb.Row(kb.Data(b.bundle.T(locale, "help.back_to_list"), "help", "help", "list")),
+		)
+	} else {
+		// 没配：提示用户、回帮助列表
+		sb.WriteString("\n\n")
+		sb.WriteString(b.bundle.T(locale, "help.support_no_link"))
+		kb.Inline(kb.Row(kb.Data(b.bundle.T(locale, "help.back_to_list"), "help", "help", "list")))
+	}
+
+	if c.Callback() != nil {
+		return c.Edit(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
+	}
+	return c.Send(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
 }
 
 // onLanguage 切换语言
