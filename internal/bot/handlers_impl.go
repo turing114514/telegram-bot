@@ -45,15 +45,15 @@ func (b *Bot) onShopHome(c tele.Context) error {
 	}
 
 	kb := &tele.ReplyMarkup{}
-	rows := []tele.Row{kb.Row(kb.Data(b.bundle.T(locale, "shop.all_products"), "shop", "list", "0"))}
+	rows := []tele.Row{kb.Row(kb.Data(b.bundle.T(locale, "shop.all_products"), "shop", "shop", "list", "0"))}
 	for _, cat := range categories {
 		name := cat.Name
 		if name == "" {
 			name = fmt.Sprintf("#%d", cat.ID)
 		}
-		rows = append(rows, kb.Row(kb.Data(name, "shop", "cat", fmt.Sprintf("%d", cat.ID), "0")))
+		rows = append(rows, kb.Row(kb.Data(name, "shop", "shop", "cat", fmt.Sprintf("%d", cat.ID), "0")))
 	}
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "main")))
+	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")))
 	kb.Inline(rows...)
 	return c.Send(b.bundle.T(locale, "shop.title"),
 		&tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
@@ -137,17 +137,15 @@ func (b *Bot) shopList(c tele.Context, categoryID uint, page int) error {
 			priceLine = formatter.FormatAmountDisplay(p.MemberPriceFrom, p.Currency) + "/" + priceLine
 		}
 		label := fmt.Sprintf("%s - %s", title, priceLine)
-		rows = append(rows, kb.Row(kb.Data(label, "shop", "item", fmt.Sprintf("%d", p.ID))))
+		rows = append(rows, kb.Row(kb.Data(label, "shop", "shop", "item", fmt.Sprintf("%d", p.ID))))
 	}
 	if page > 0 {
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_prev"),
-			"shop", "cat", fmt.Sprintf("%d", categoryID), fmt.Sprintf("%d", page-1))))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_prev"), "shop", "shop", "cat", fmt.Sprintf("%d", categoryID), fmt.Sprintf("%d", page-1))))
 	}
 	if int64(page+1) < resp.TotalPage {
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_next"),
-			"shop", "cat", fmt.Sprintf("%d", categoryID), fmt.Sprintf("%d", page+1))))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_next"), "shop", "shop", "cat", fmt.Sprintf("%d", categoryID), fmt.Sprintf("%d", page+1))))
 	}
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "shop", "home")))
+	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "shop", "shop", "home")))
 	kb.Inline(rows...)
 	title := b.bundle.MustTr(locale, "shop.product_list_title", map[string]any{
 		"Page":      page + 1,
@@ -187,10 +185,9 @@ func (b *Bot) shopItem(c tele.Context, productID uint) error {
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{}
 	if detail.StockStatus == "in_stock" {
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "shop.confirm_order"),
-			"shop", "buy", fmt.Sprintf("%d", detail.ID), "1")))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "shop.confirm_order"), "shop", "shop", "buy", fmt.Sprintf("%d", detail.ID), "1")))
 	}
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "shop", "home")))
+	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "shop", "shop", "home")))
 	kb.Inline(rows...)
 	if c.Callback() != nil {
 		return c.Edit(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
@@ -209,15 +206,11 @@ func (b *Bot) shopBuy(c tele.Context, productID uint, qty int) error {
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{}
 	for _, n := range b.cfg.Bot.QuantityOptions {
-		rows = append(rows, kb.Row(kb.Data(
-			b.bundle.MustTr(locale, "shop.quantity_button", map[string]any{"Quantity": n}),
-			"shop", "buy", fmt.Sprintf("%d", productID), fmt.Sprintf("%d", n),
-		)))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.MustTr(locale, "shop.quantity_button", map[string]any{"Quantity": n}), "shop", "shop", "buy", fmt.Sprintf("%d", productID), fmt.Sprintf("%d", n), )))
 	}
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "shop.coupon_apply"), "shop", "coupon")))
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "shop.coupon_skip"), "shop", "preview")))
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"),
-		"shop", "item", fmt.Sprintf("%d", productID))))
+	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "shop.coupon_apply"), "shop", "shop", "coupon")))
+	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "shop.coupon_skip"), "shop", "shop", "preview")))
+	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "shop", "shop", "item", fmt.Sprintf("%d", productID))))
 	kb.Inline(rows...)
 	if c.Callback() != nil {
 		return c.Edit(b.bundle.T(locale, "shop.select_quantity"),
@@ -285,9 +278,8 @@ func (b *Bot) handleConfirmOrder(c tele.Context, locale string) error {
 	})
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{
-		kb.Row(kb.Data(b.bundle.T(locale, "orders.pay_now"),
-			"pay", "list", fmt.Sprintf("%d", order.OrderID))),
-		kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "main")),
+		kb.Row(kb.Data(b.bundle.T(locale, "orders.pay_now"), "pay", "pay", "list", fmt.Sprintf("%d", order.OrderID))),
+		kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")),
 	}
 	kb.Inline(rows...)
 	sess.PendingOrderItems = nil
@@ -319,23 +311,18 @@ func (b *Bot) ordersList(c tele.Context, status string, page int, locale string)
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{}
 	for _, o := range resp.Items {
-		rows = append(rows, kb.Row(kb.Data(
-			fmt.Sprintf("#%s · %s · %s",
+		rows = append(rows, kb.Row(kb.Data(fmt.Sprintf("#%s · %s · %s",
 				formatter.Truncate(o.OrderNo, 12),
 				formatter.OrderStatusLabel(locale, o.Status),
-				formatter.FormatAmountDisplay(o.TotalAmount, o.Currency)),
-			"order", "detail", fmt.Sprintf("%d", o.OrderID),
-		)))
+				formatter.FormatAmountDisplay(o.TotalAmount, o.Currency)), "order", "order", "detail", fmt.Sprintf("%d", o.OrderID), )))
 	}
 	if page > 0 {
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_prev"),
-			"order", "list", fmt.Sprintf("%d", page-1), status)))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_prev"), "order", "order", "list", fmt.Sprintf("%d", page-1), status)))
 	}
 	if int64(page+1) < resp.TotalPages {
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_next"),
-			"order", "list", fmt.Sprintf("%d", page+1), status)))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_next"), "order", "order", "list", fmt.Sprintf("%d", page+1), status)))
 	}
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "main")))
+	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")))
 	kb.Inline(rows...)
 	title := b.bundle.MustTr(locale, "orders.title", map[string]any{
 		"Page":      page + 1,
@@ -394,13 +381,10 @@ func (b *Bot) orderDetail(c tele.Context, orderID uint) error {
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{}
 	if detail.Status == "pending_payment" {
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "orders.pay_now"),
-			"pay", "list", fmt.Sprintf("%d", detail.OrderID))))
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "orders.cancel_order"),
-			"order", "cancel", fmt.Sprintf("%d", detail.OrderID))))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "orders.pay_now"), "pay", "pay", "list", fmt.Sprintf("%d", detail.OrderID))))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "orders.cancel_order"), "order", "order", "cancel", fmt.Sprintf("%d", detail.OrderID))))
 	}
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"),
-		"order", "list", "0", "")))
+	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "order", "order", "list", "0", "")))
 	kb.Inline(rows...)
 	if c.Callback() != nil {
 		return c.Edit(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
@@ -483,10 +467,10 @@ func (b *Bot) onMyWallet(c tele.Context) error {
 	})
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{
-		kb.Row(kb.Data(b.bundle.T(locale, "wallet.recharge"), "recharge", "start")),
-		kb.Row(kb.Data(b.bundle.T(locale, "wallet.transactions"), "wallet", "txn", "0")),
-		kb.Row(kb.Data(b.bundle.T(locale, "menu.gift_card"), "gift", "start")),
-		kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "main")),
+		kb.Row(kb.Data(b.bundle.T(locale, "wallet.recharge"), "recharge", "recharge", "start")),
+		kb.Row(kb.Data(b.bundle.T(locale, "wallet.transactions"), "wallet", "wallet", "txn", "0")),
+		kb.Row(kb.Data(b.bundle.T(locale, "menu.gift_card"), "gift", "gift", "start")),
+		kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")),
 	}
 	kb.Inline(rows...)
 	return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
@@ -591,8 +575,7 @@ func (b *Bot) handleRechargeAmount(c tele.Context, amount, locale string) error 
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{}
 	for _, item := range eligible {
-		rows = append(rows, kb.Row(kb.Data(item.Name,
-			"recharge", "do", amount+"|"+fmt.Sprintf("%d", item.ID))))
+		rows = append(rows, kb.Row(kb.Data(item.Name, "recharge", "recharge", "do", amount+"|"+fmt.Sprintf("%d", item.ID))))
 	}
 	kb.Inline(rows...)
 	return c.Send(b.bundle.T(locale, "wallet.recharge_channel_prompt"),
@@ -657,14 +640,12 @@ func (b *Bot) handleWalletCallback(c tele.Context, action string) error {
 		kb := &tele.ReplyMarkup{}
 		rows := []tele.Row{}
 		if page > 0 {
-			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_prev"),
-				"wallet", "txn", fmt.Sprintf("%d", page-1))))
+			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_prev"), "wallet", "wallet", "txn", fmt.Sprintf("%d", page-1))))
 		}
 		if int64(page+1) < resp.TotalPages {
-			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_next"),
-				"wallet", "txn", fmt.Sprintf("%d", page+1))))
+			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_next"), "wallet", "wallet", "txn", fmt.Sprintf("%d", page+1))))
 		}
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "main")))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")))
 		kb.Inline(rows...)
 		if c.Callback() != nil {
 			return c.Edit(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
@@ -750,8 +731,8 @@ func (b *Bot) onAffiliate(c tele.Context) error {
 	if !dash.Opened {
 		kb := &tele.ReplyMarkup{}
 		kb.Inline(
-			kb.Row(kb.Data(b.bundle.T(locale, "affiliate.open"), "affiliate", "open")),
-			kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "main")),
+			kb.Row(kb.Data(b.bundle.T(locale, "affiliate.open"), "affiliate", "affiliate", "open")),
+			kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")),
 		)
 		return c.Send(b.bundle.T(locale, "affiliate.not_opened"),
 			&tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
@@ -780,10 +761,10 @@ func (b *Bot) onAffiliate(c tele.Context) error {
 	}
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{
-		kb.Row(kb.Data(b.bundle.T(locale, "affiliate.commissions"), "affiliate", "commissions", "0")),
-		kb.Row(kb.Data(b.bundle.T(locale, "affiliate.withdraws"), "affiliate", "withdraws", "0")),
-		kb.Row(kb.Data(b.bundle.T(locale, "affiliate.withdraw_apply"), "affiliate", "withdraw", "start")),
-		kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "main")),
+		kb.Row(kb.Data(b.bundle.T(locale, "affiliate.commissions"), "affiliate", "affiliate", "commissions", "0")),
+		kb.Row(kb.Data(b.bundle.T(locale, "affiliate.withdraws"), "affiliate", "affiliate", "withdraws", "0")),
+		kb.Row(kb.Data(b.bundle.T(locale, "affiliate.withdraw_apply"), "affiliate", "affiliate", "withdraw", "start")),
+		kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")),
 	}
 	kb.Inline(rows...)
 	return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
@@ -833,14 +814,12 @@ func (b *Bot) handleAffiliateCallback(c tele.Context, action string) error {
 		kb := &tele.ReplyMarkup{}
 		rows := []tele.Row{}
 		if page > 0 {
-			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_prev"),
-				"affiliate", "commissions", fmt.Sprintf("%d", page-1))))
+			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_prev"), "affiliate", "affiliate", "commissions", fmt.Sprintf("%d", page-1))))
 		}
 		if int64(page+1) < resp.TotalPages {
-			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_next"),
-				"affiliate", "commissions", fmt.Sprintf("%d", page+1))))
+			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_next"), "affiliate", "affiliate", "commissions", fmt.Sprintf("%d", page+1))))
 		}
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "main")))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")))
 		kb.Inline(rows...)
 		if c.Callback() != nil {
 			return c.Edit(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
@@ -874,14 +853,12 @@ func (b *Bot) handleAffiliateCallback(c tele.Context, action string) error {
 		kb := &tele.ReplyMarkup{}
 		rows := []tele.Row{}
 		if page > 0 {
-			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_prev"),
-				"affiliate", "withdraws", fmt.Sprintf("%d", page-1))))
+			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_prev"), "affiliate", "affiliate", "withdraws", fmt.Sprintf("%d", page-1))))
 		}
 		if int64(page+1) < resp.TotalPages {
-			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_next"),
-				"affiliate", "withdraws", fmt.Sprintf("%d", page+1))))
+			rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.page_next"), "affiliate", "affiliate", "withdraws", fmt.Sprintf("%d", page+1))))
 		}
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "main")))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")))
 		kb.Inline(rows...)
 		if c.Callback() != nil {
 			return c.Edit(sb.String(), &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
@@ -958,7 +935,7 @@ func (b *Bot) handleWithdrawAmount(c tele.Context, amount, locale string) error 
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{}
 	for _, ch := range channels {
-		rows = append(rows, kb.Row(kb.Data(ch, "withdraw", "channel", ch)))
+		rows = append(rows, kb.Row(kb.Data(ch, "withdraw", "withdraw", "channel", ch)))
 	}
 	kb.Inline(rows...)
 	return c.Send(b.bundle.T(locale, "affiliate.withdraw_channel_prompt"),
@@ -1028,10 +1005,9 @@ func (b *Bot) handlePayCallback(c tele.Context, action string) error {
 		kb := &tele.ReplyMarkup{}
 		rows := []tele.Row{}
 		for _, ch := range ch.Items {
-			rows = append(rows, kb.Row(kb.Data(ch.Name,
-				"pay", "do", fmt.Sprintf("%d|%d", orderID, ch.ID))))
+			rows = append(rows, kb.Row(kb.Data(ch.Name, "pay", "pay", "do", fmt.Sprintf("%d|%d", orderID, ch.ID))))
 		}
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "main")))
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")))
 		kb.Inline(rows...)
 		return c.Send(b.bundle.T(locale, "orders.pay_title"),
 			&tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
