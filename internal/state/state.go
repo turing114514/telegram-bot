@@ -26,9 +26,10 @@ type Session struct {
 	WithdrawPendingCh     string
 
 	// 礼品卡 / 优惠码临时输入
-	AwaitingGiftCard bool
-	AwaitingCoupon   bool
-	PendingCoupon    string
+	AwaitingGiftCard          bool
+	AwaitingCoupon            bool
+	PendingCoupon             string
+	AwaitingQuantityProductID uint // 自定义数量：等待用户输入数字的商品 ID
 }
 
 // OrderItemDraft 订单草稿项

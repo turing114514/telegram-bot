@@ -96,7 +96,38 @@ func (b *Bot) handleShopCallback(c tele.Context, action string) error {
 		if qty <= 0 {
 			qty = 1
 		}
+		// 商品详情点"立即购买"：先把数量写 session，再进数量选择页
 		return b.shopBuy(c, uint(pid), qty)
+	case "qty":
+		// 点预设数量按钮：直接确认订单
+		var pid uint64
+		var qty int
+		if len(parts) > 1 {
+			pid, _ = strconv.ParseUint(parts[1], 10, 64)
+		}
+		if len(parts) > 2 {
+			qty, _ = strconv.Atoi(parts[2])
+		}
+		if qty <= 0 {
+			qty = 1
+		}
+		sess := b.state.Get(c.Sender().ID)
+		sess.LastProductID = uint(pid)
+		sess.LastProductQty = qty
+		sess.PendingOrderItems = []state.OrderItemDraft{{ProductID: uint(pid), Quantity: qty}}
+		locale := b.resolveUserLocale(c, sess)
+		return b.handleConfirmOrder(c, locale)
+	case "custom":
+		// 自定义数量：标记 session 等用户输入
+		var pid uint64
+		if len(parts) > 1 {
+			pid, _ = strconv.ParseUint(parts[1], 10, 64)
+		}
+		sess := b.state.Get(c.Sender().ID)
+		sess.AwaitingQuantityProductID = uint(pid)
+		locale := b.resolveUserLocale(c, sess)
+		_ = c.Respond()
+		return c.Send(b.bundle.T(locale, "shop.quantity_custom_prompt"))
 	case "preview":
 		locale := b.resolveUserLocale(c, b.state.Get(c.Sender().ID))
 		return b.handleConfirmOrder(c, locale)
@@ -201,7 +232,6 @@ func (b *Bot) shopItem(c tele.Context, productID uint) error {
 	}
 	return c.Send(text, &tele.SendOptions{ParseMode: tele.ModeHTML, ReplyMarkup: kb})
 }
-
 func (b *Bot) shopBuy(c tele.Context, productID uint, qty int) error {
 	sess := b.state.Get(c.Sender().ID)
 	locale := b.resolveUserLocale(c, sess)
@@ -213,11 +243,19 @@ func (b *Bot) shopBuy(c tele.Context, productID uint, qty int) error {
 	kb := &tele.ReplyMarkup{}
 	rows := []tele.Row{}
 	for _, n := range b.cfg.Bot.QuantityOptions {
-		rows = append(rows, kb.Row(kb.Data(b.bundle.MustTr(locale, "shop.quantity_button", map[string]any{"Quantity": n}), "shop", "shop", "buy", fmt.Sprintf("%d", productID), fmt.Sprintf("%d", n), )))
+		// 点击预设数量直接确认该数量（action: "qty"）
+		rows = append(rows, kb.Row(kb.Data(
+			b.bundle.MustTr(locale, "shop.quantity_button", map[string]any{"Quantity": n}),
+			"shop", "shop", "qty", fmt.Sprintf("%d", productID), fmt.Sprintf("%d", n),
+		)))
 	}
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "shop.coupon_apply"), "shop", "shop", "coupon")))
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "shop.coupon_skip"), "shop", "shop", "preview")))
-	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "shop", "shop", "item", fmt.Sprintf("%d", productID))))
+	// 自定义数量（action: "custom"）→ 切到等用户输入数字的状态
+	rows = append(rows, kb.Row(kb.Data(
+		b.bundle.T(locale, "shop.quantity_custom"),
+		"shop", "shop", "custom", fmt.Sprintf("%d", productID),
+	)))
+	rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"),
+		"shop", "shop", "item", fmt.Sprintf("%d", productID))))
 	kb.Inline(rows...)
 	if c.Callback() != nil {
 		return c.Edit(b.bundle.T(locale, "shop.select_quantity"),

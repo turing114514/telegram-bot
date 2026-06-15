@@ -41,6 +41,8 @@
     "stock_unlimited": "無限",
     "select_quantity": "請選擇購買數量",
     "quantity_button": "數量：{{.Quantity}}",
+    "quantity_custom": "🔢 自訂數量",
+    "quantity_custom_prompt": "請回覆要購買的數量（僅支援數字）：",
     "preview_title": "📋 訂單預覽",
     "preview_item": "• {{.Title}} × {{.Quantity}} = {{.Subtotal}} {{.Currency}}",
     "preview_total": "合計：*{{.Total}} {{.Currency}}*",

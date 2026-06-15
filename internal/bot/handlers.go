@@ -2,6 +2,7 @@ package bot
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	"telegram-bot/internal/i18n"
@@ -64,6 +65,18 @@ func (b *Bot) onText(c tele.Context) error {
 func (b *Bot) dispatchFreeformText(c tele.Context, text string) error {
 	sess := b.state.Get(c.Sender().ID)
 	locale := b.resolveUserLocale(c, sess)
+	if sess.AwaitingQuantityProductID != 0 {
+		pid := sess.AwaitingQuantityProductID
+		sess.AwaitingQuantityProductID = 0
+		qty, err := strconv.Atoi(strings.TrimSpace(text))
+		if err != nil || qty <= 0 {
+			return c.Send(b.bundle.T(locale, "shop.recharge_invalid"))
+		}
+		sess.LastProductID = pid
+		sess.LastProductQty = qty
+		sess.PendingOrderItems = []state.OrderItemDraft{{ProductID: pid, Quantity: qty}}
+		return b.handleConfirmOrder(c, locale)
+	}
 	if sess.AwaitingGiftCard {
 		sess.AwaitingGiftCard = false
 		return b.handleGiftCardRedeem(c, text, locale)

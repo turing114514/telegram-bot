@@ -41,6 +41,8 @@
     "stock_unlimited": "Unlimited",
     "select_quantity": "Please select quantity",
     "quantity_button": "Qty: {{.Quantity}}",
+    "quantity_custom": "🔢 Custom quantity",
+    "quantity_custom_prompt": "Reply with the quantity (numbers only):",
     "preview_title": "📋 Order preview",
     "preview_item": "• {{.Title}} × {{.Quantity}} = {{.Subtotal}} {{.Currency}}",
     "preview_total": "Total: *{{.Total}} {{.Currency}}*",
