@@ -38,7 +38,6 @@ archives:
     files:
       - configs/config.example.yaml
       - README.md
-      - LICENSE
 
 checksum:
   name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
