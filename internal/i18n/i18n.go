@@ -97,7 +97,7 @@ func (b *Bundle) Tr(locale, key string, data map[string]any) (string, error) {
 	}
 	var buf bytes.Buffer
 	if err := tpl.Execute(&buf, data); err != nil {
-		return "", fmt.Errorf("execute template %s.%s: %w", locale, key, err)
+		return "", fmt.Errorf("execute template %s.%s (%q): %w", locale, key, tplStr, err)
 	}
 	return buf.String(), nil
 }

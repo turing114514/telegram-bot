@@ -1178,7 +1178,11 @@ func (b *Bot) handlePayCallback(c tele.Context, action string) error {
 		if resp.PayURL != "" {
 			rows = append(rows, kb.Row(kb.URL(b.bundle.T(locale, "orders.pay_url_label"), resp.PayURL)))
 		}
-		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "orders.title"), "order", "order", "detail", fmt.Sprintf("%d", orderID))))
+		// 重新选择支付方式
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "orders.back_to_channels"), "pay", "pay", "list", fmt.Sprintf("%d", orderID))))
+		// 返回订单详情
+		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "orders.view_detail"), "order", "order", "detail", fmt.Sprintf("%d", orderID))))
+		// 返回主菜单
 		rows = append(rows, kb.Row(kb.Data(b.bundle.T(locale, "common.back"), "back", "back", "main")))
 		kb.Inline(rows...)
 

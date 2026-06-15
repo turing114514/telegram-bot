@@ -79,7 +79,9 @@
     "qr_label": "收款碼（可截圖掃碼）",
     "pay_created": "✅ 支付已建立，金額：{{.Amount}} {{.Currency}}",
     "order_paid": "✅ 訂單支付成功",
-    "order_expired": "⏰ 訂單已過期"
+    "order_expired": "⏰ 訂單已過期",
+    "view_detail": "📄 查看訂單詳情",
+    "back_to_channels": "🔄 重新選擇支付方式"
   },
   "wallet": {
     "title": "💰 我的錢包",

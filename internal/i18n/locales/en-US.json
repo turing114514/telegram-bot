@@ -79,7 +79,9 @@
     "qr_label": "QR code (screenshot to scan)",
     "pay_created": "✅ Payment created, amount: {{.Amount}} {{.Currency}}",
     "order_paid": "✅ Order paid",
-    "order_expired": "⏰ Order expired"
+    "order_expired": "⏰ Order expired",
+    "view_detail": "📄 View order",
+    "back_to_channels": "🔄 Change payment method"
   },
   "wallet": {
     "title": "💰 My Wallet",
