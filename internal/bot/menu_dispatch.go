@@ -14,6 +14,15 @@ func (b *Bot) onCallback(c tele.Context) error {
 		c.Respond()
 		return nil
 	}
+	// telebot 给 callback_data 加了 "\f<unique>|" 前缀用于内部路由，
+	// 由于我们用 OnCallback 兜底，需要自己剥掉
+	if data[0] == '\f' {
+		if idx := strings.Index(data, "|"); idx >= 0 {
+			data = data[idx+1:]
+		} else {
+			data = ""
+		}
+	}
 	// kb.Data(text, unique, data...) 用 | 分隔，第一个元素是 handler 前缀
 	parts := strings.Split(data, "|")
 	if len(parts) < 2 {
